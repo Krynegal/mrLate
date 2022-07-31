@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"io"
+	"mrLate/internal/configs"
 	"mrLate/internal/period"
 	"net/http"
 	"time"
@@ -14,26 +15,22 @@ type Request struct {
 	Departure         time.Time
 	ReservePeriod     period.Period
 	AdditionalReserve period.Period
-	// address
+	// Address
 }
-
-//func (r Request) convertDeparture() (time.Time, error) {
-//	departureTime, err := time.Parse(time.RFC3339, r.Departure)
-//	if err != nil {
-//		return time.Time{}, err
-//	}
-//	return departureTime, err
-//}
 
 type Handler struct {
 	Router *mux.Router
+	Oauth  *configs.OauthConfig
 }
 
 func NewHandler() *Handler {
 	h := Handler{
 		Router: mux.NewRouter(),
+		Oauth:  configs.NewOauthConfGl(),
 	}
-	h.Router.HandleFunc("/", h.Handler).Methods(http.MethodPost)
+	h.Router.HandleFunc("/", h.Handler)
+	h.Router.HandleFunc("/login-gl", h.HandleGoogleLogin)
+	h.Router.HandleFunc("/callback-gl", h.CallBackFromGoogle)
 	return &h
 }
 
