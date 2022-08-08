@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/valyala/fastjson"
 	"golang.org/x/oauth2"
 	"io/ioutil"
 	"log"
@@ -10,22 +12,6 @@ import (
 )
 
 func (h *Handler) HandleGoogleLogin(w http.ResponseWriter, r *http.Request) {
-	//URL, err := url.Parse(oauthConf.Endpoint.AuthURL)
-	//if err != nil {
-	//	log.Println(err)
-	//}
-	//log.Printf("URL.String(): %s", URL.String())
-	//parameters := url.Values{}
-	//parameters.Add("client_id", oauthConf.ClientID)
-	//parameters.Add("scope", strings.Join(oauthConf.Scopes, " "))
-	//parameters.Add("redirect_uri", oauthConf.RedirectURL)
-	//parameters.Add("response_type", "code")
-	//parameters.Add("state", oauthStateString)
-	//URL.RawQuery = parameters.Encode()
-	//urlStr := URL.String()
-	//log.Println(urlStr)
-	//http.Redirect(w, r, urlStr, http.StatusTemporaryRedirect)
-
 	url := h.Oauth.Config.AuthCodeURL("state", oauth2.AccessTypeOffline)
 	fmt.Printf("Visit the URL for the auth dialog: %v", url)
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
@@ -36,11 +22,6 @@ func (h *Handler) CallBackFromGoogle(w http.ResponseWriter, r *http.Request) {
 
 	state := r.FormValue("state")
 	log.Println(state)
-	//if state != oauthStateStringGl {
-	//	log.Println("invalid oauth state, expected " + oauthStateStringGl + ", got " + state + "\n")
-	//	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-	//	return
-	//}
 
 	code := r.FormValue("code")
 	log.Println(code)
@@ -81,8 +62,22 @@ func (h *Handler) CallBackFromGoogle(w http.ResponseWriter, r *http.Request) {
 
 		log.Println("parseResponseBody: " + string(response) + "\n")
 
+		r, err := fastjson.ParseBytes(response)
+		if err != nil {
+			http.Error(w, "can't parse", http.StatusBadRequest)
+		}
+		fmt.Println(r.Get("items"))
+
 		w.Write([]byte("Hello, I'm protected\n"))
 		w.Write([]byte(string(response)))
 		return
 	}
+}
+
+func getResponseMap(responseBody []byte) map[string]interface{} {
+	var result map[string]interface{}
+	if err := json.Unmarshal(responseBody, &result); err != nil {
+		fmt.Println(err)
+	}
+	return result
 }
